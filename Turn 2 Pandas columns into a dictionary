@@ -4,3 +4,5 @@ d = {}
     
 for company_id,company_name in zip(companies_table['id'], companies_table['name']): 
     d[company_id] = company_name
+    
+#use networkx.relabel_nodes() to use the aboce dictionary to relabel the nodes on your graph!
