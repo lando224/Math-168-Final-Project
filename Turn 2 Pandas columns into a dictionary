@@ -1,0 +1,6 @@
+companies_table = pd.read_csv('/Users/EmmetDonahue/Downloads/startup-investments/objects.csv', delimiter = ',')
+
+d = {}
+    
+for company_id,company_name in zip(companies_table['id'], companies_table['name']): 
+    d[company_id] = company_name
