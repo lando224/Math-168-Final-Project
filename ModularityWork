@@ -1,0 +1,44 @@
+import networkx as nx
+import matplotlib as mp
+import pandas as pd
+from networkx.algorithms import bipartite
+from networkx.algorithms.bipartite.projection import weighted_projected_graph
+from networkx.algorithms import community
+from networkx.algorithms.community import best_partition
+
+vc2=pd.read_csv("Downloads/GitHub/168/vc_investments.csv", header=0) 
+#read vc investments into dataframe
+vc=vc2.dropna()
+
+
+
+
+category_groups=[]
+print set(vc['status'])
+for i in set(vc['status']):  
+    category_groups.append(set([vc['startup_id'][j] for j in vc.index if vc['status'][j]==i]))
+vc_edges= pd.DataFrame([vc.funding_id, vc.startup_id]).transpose()
+vc_edges['combined']=vc_edges.values.tolist()
+#extracts investments from vc investments dataframe 
+
+
+edge_list_vc= vc_edges['combined'].tolist()
+#creates list of node pairs
+
+
+G_vc=nx.Graph()
+G_vc.add_nodes_from(vc.funding_id.tolist(),bipartite=0)
+G_vc.add_nodes_from(vc.startup_id.tolist(),bipartite=1)
+G_vc.add_edges_from(edge_list_vc)
+#creates graph from node pairs of vc investments
+G_projected=weighted_projected_graph(G_vc,vc.startup_id.tolist())
+G_projected2=weighted_projected_graph(G_vc,vc.funding_id.tolist())
+
+mod = community.modularity(G_projected,category_groups)
+print mod
+
+
+
+
+
+print community.best_partition(G_projected2)
