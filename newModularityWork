@@ -1,0 +1,83 @@
+import networkx as nx
+import matplotlib as mp
+import pandas as pd
+from networkx.algorithms import bipartite
+from networkx.algorithms.bipartite.projection import weighted_projected_graph
+from networkx.algorithms import community
+#from networkx.algorithms.community import best_partition
+
+vc2=pd.read_csv("vc_investments.csv", header=0) 
+#read vc investments into dataframe
+vc=vc2.dropna()
+vc=vc[(vc["status"]!='0')]
+vc=vc[(vc["status"]!='other')]
+#company2=pd.read_csv("company_investments.csv", header=0) 
+#company=company2.dropna()
+
+people2=pd.read_csv("people_investments.csv", header=0) 
+people=people2.dropna()
+people=people[(people["status"]!='0')]
+people=people[(people["status"]!='other')]
+
+
+
+category_groups=[]
+
+for i in set(vc['status'])|set(people['status']):  
+        category_groups.append(set([vc['startup_id'][j] for j in vc.index if vc['status'][j]==i])|set([people['startup_id'][j] for j in people.index if people['status'][j]==i]))
+
+vc_edges= pd.DataFrame([vc.funding_id, vc.startup_id]).transpose()
+#company_edges= pd.DataFrame([company.funding_id, company.startup_id]).transpose()
+people_edges= pd.DataFrame([people.funding_id, people.startup_id]).transpose()
+all_edges=pd.concat([vc_edges,people_edges])
+
+all_edges['combined']=all_edges.values.tolist()
+vc_edges['combined']=vc_edges.values.tolist()
+people_edges['combined']=people_edges.values.tolist()
+#extracts investments from vc investments dataframe 
+
+
+
+all_edge_list= all_edges['combined'].tolist()
+vc_edge_list= vc_edges['combined'].tolist()
+people_edge_list= people_edges['combined'].tolist()
+#creates list of node pairs
+
+
+G_all=nx.Graph()
+
+G_all.add_nodes_from(vc.funding_id.tolist(),bipartite=0)
+G_all.add_nodes_from(vc.startup_id.tolist(),bipartite=1)
+G_all.add_nodes_from(people.funding_id.tolist(),bipartite=0)
+G_all.add_nodes_from(people.startup_id.tolist(),bipartite=1)
+G_all.add_edges_from(all_edge_list)
+
+G_vc=nx.Graph()
+
+G_vc.add_nodes_from(vc.funding_id.tolist(),bipartite=0)
+G_vc.add_nodes_from(vc.startup_id.tolist(),bipartite=1)
+G_vc.add_edges_from(vc_edge_list)
+
+G_people=nx.Graph()
+
+G_people.add_nodes_from(people.funding_id.tolist(),bipartite=0)
+G_people.add_nodes_from(people.startup_id.tolist(),bipartite=1)
+G_people.add_edges_from(people_edge_list)
+#creates graph from node pairs of vc investments
+
+G_projected=weighted_projected_graph(G_all,set(vc.startup_id.tolist())|set(people.startup_id.tolist()))
+G_projected2=weighted_projected_graph(G_people,people.funding_id.tolist())
+
+mod = community.modularity(G_projected,category_groups,weight='weight')
+
+from collections import defaultdict
+from community import community_louvain
+part=community_louvain.best_partition(G_projected2)
+v=defaultdict(list)
+for key, value in sorted(part.items()):
+    v[value].append(key)
+list_of_sets=[]
+for i in v.keys():
+    list_of_sets.append(set(v[i]))
+print(list_of_sets)
+print(community.modularity(G_projected2,list_of_sets))
